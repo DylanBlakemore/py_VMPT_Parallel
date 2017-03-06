@@ -32,3 +32,8 @@ class DataSet:
             frame_data = self._file_data[frame_start:frame_end, : ]
             return frame.Frame(frame_data)
         
+    # For parallel computing, splits the data set up into chunks for processing
+    def split(self):
+        split_indices = range(self._frame_size, self._num_frames*self._frame_size, self._frame_size)
+        return np.split(self._file_data, split_indices)
+        
