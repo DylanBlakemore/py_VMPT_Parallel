@@ -9,10 +9,13 @@ class DataSet:
         # the number of lines to be used in the 
         self._frame_size = frame_size                              
         self._data_size = self._file_data.shape[0]                  # number of rows in the data
-        if num_frames == -1:
-            self._num_frames = int(math.ceil(self._data_size / float(self._frame_size)))  # number of frames, based on data set and frame size
-        else:
+        if num_frames > 0 and num_frames < self._data_size:
             self._num_frames = num_frames
+            self._file_data = self._file_data[0:num_frames*frame_size,:]
+            self._data_size = np.shape(self._file_data)
+        else:
+            self._num_frames = int(math.ceil(self._data_size / float(self._frame_size)))  # number of frames, based on data set and frame size
+
     # Returns the total number of frames in the file
     def getNumFrames(self):
         return self._num_frames        
