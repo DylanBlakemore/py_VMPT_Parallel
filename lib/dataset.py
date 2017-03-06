@@ -4,12 +4,15 @@ import math
 from lib import frame
 
 class DataSet:
-    def __init__(self, file_path, frame_size):
+    def __init__(self, file_path, frame_size, num_frames=-1):
         self._file_data = np.genfromtxt(file_path, delimiter='\t') # load data from file
+        # the number of lines to be used in the 
         self._frame_size = frame_size                              
         self._data_size = self._file_data.shape[0]                  # number of rows in the data
-        self._num_frames = int(math.ceil(self._data_size / float(self._frame_size)))  # number of frames, based on data set and frame size
-
+        if num_frames == -1:
+            self._num_frames = int(math.ceil(self._data_size / float(self._frame_size)))  # number of frames, based on data set and frame size
+        else:
+            self._num_frames = num_frames
     # Returns the total number of frames in the file
     def getNumFrames(self):
         return self._num_frames        
