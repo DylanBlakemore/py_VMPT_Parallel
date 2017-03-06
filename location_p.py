@@ -4,6 +4,7 @@ import os
 import glob
 import shutil
 import multiprocessing
+import time
 from ConfigParser import SafeConfigParser
 
 from sklearn.cluster import DBSCAN
@@ -16,8 +17,28 @@ from lib import vmptutils as vuti
 def locate(frame_data_i):
     # initialize variables
     frame_i = frame.Frame(frame_data_i)
+    poi = frame_i.getPointsOfInterest(EPS)
+    all_points = frame_i.getPointsAt(poi['ind'])
+    all_vols = poi['vol']
+    time_i = frame_i.getFrameTime()
     del frame_i
-    return 0
+    lof = lofpy.getLOF(K, all_points)
+    low_lof = vuti.getLowFraction(lof, LOF_FRAC)
+    lof_smoothed = all_points[low_lof,:]
+    lof_smoothed_vols = np.array(all_vols)[low_lof]
+    low_vol = vuti.getLowFraction(lof_smoothed_vols, VOL_FRAC)
+    # Actual points used in clustering
+    remainders = lof_smoothed[low_vol,:]
+    db = DBSCAN(eps=EPS, min_samples=K).fit(remainders)
+    labels = db.labels_
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+    locations = np.zeros((n_clusters,4))
+    for cluster in range(0, n_clusters):
+        cluster_inds = np.where(labels == cluster)[0]
+        location = np.sum(remainders[cluster_inds,:], axis=0)/len(cluster_inds)
+        locations[cluster,0:3] = location
+        locations[cluster,3] = time_i
+    return locations
 
 def start_process():
     print 'Starting ', multiprocessing.current_process().name
@@ -67,8 +88,10 @@ if __name__ == "__main__":
                   
     num_tracers = int(raw_input('Enter the number of tracers expected: '))
     
+    print('Starting location using ' + str(NUM_CORES) + ' physical cores.')
+    
     # search the input folder for all files with the correct filetype (.dat)
-    print('Searching for .dat files in ' + input_folder)
+    print('\n Searching for .dat files in ' + input_folder)
     search_path = os.path.join(input_folder,'*.dat')
     input_files = glob.glob(search_path)
     
@@ -88,16 +111,20 @@ if __name__ == "__main__":
             file_path = input_files[file_num]
             print('==================================================')
             print('Loading data from file ' + file_path)
-            data_file = dataset.DataSet(file_path, frame_size, num_frames=50)
+            data_file = dataset.DataSet(file_path, frame_size, num_frames=12)
             pool_inputs = data_file.split()
             print('Data loaded')
-            #print(np.shape(pool_inputs))
             pool = multiprocessing.Pool(processes=NUM_CORES, initializer=start_process)
+            
+            start = time.time()
             pool_output = pool.map(locate, pool_inputs)
             pool.close()
             pool.join()
+            end = time.time()
+            print(len(pool_output))
+            print(pool_output[0])
         
-            print('Finished processing file ' + file_path)
+            print('Finished processing file ' + file_path + ' in ' + str(end-start) + 's')
         except KeyboardInterrupt, SystemExit:
             print('\n Operation cancelled, writing data to file...')
             raise
