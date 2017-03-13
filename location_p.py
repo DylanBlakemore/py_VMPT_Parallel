@@ -111,7 +111,7 @@ if __name__ == "__main__":
             file_path = input_files[file_num]
             print('==================================================')
             print('Loading data from file ' + file_path)
-            data_file = dataset.DataSet(file_path, frame_size, num_frames=12)
+            data_file = dataset.DataSet(file_path, frame_size);
             pool_inputs = data_file.split()
             print('Data loaded')
             pool = multiprocessing.Pool(processes=NUM_CORES, initializer=start_process)
@@ -121,10 +121,10 @@ if __name__ == "__main__":
             pool.close()
             pool.join()
             end = time.time()
-            print(len(pool_output))
-            print(pool_output[0])
-        
-            print('Finished processing file ' + file_path + ' in ' + str(end-start) + 's')
+            
+            print('Finished processing ' + str(data_file.getNumFrames()) + ' frames of file: ' \
+                   + file_path + ' in ' + str(end-start) + 's')
+            vuti.writeOutputToFile(output_folder, np.vstack(np.array(pool_output)))
         except KeyboardInterrupt, SystemExit:
             print('\n Operation cancelled, writing data to file...')
             raise
